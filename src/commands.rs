@@ -86,6 +86,8 @@ mod test {
 
 	#[test]
 	fn test_cmd_commands() {
+		crate::test::setup_global();
+
 		let mut gencmd = Gencmd::new().unwrap();
 
 		let commands = dbg!(gencmd.cmd_commands()).unwrap();
@@ -98,6 +100,8 @@ mod test {
 
 	#[test]
 	fn test_cmd_measure_temp() {
+		crate::test::setup_global();
+
 		let mut gencmd = Gencmd::new().unwrap();
 
 		let temp = dbg!(gencmd.cmd_measure_temp()).unwrap();
@@ -107,6 +111,8 @@ mod test {
 
 	#[test]
 	fn test_cmd_measure_clock_arm() {
+		crate::test::setup_global();
+
 		let mut gencmd = Gencmd::new().unwrap();
 
 		let freq = dbg!(gencmd.cmd_measure_clock_arm()).unwrap();
@@ -116,8 +122,43 @@ mod test {
 
 	#[test]
 	fn test_cmd_get_throttled() {
+		crate::test::setup_global();
+
 		let mut gencmd = Gencmd::new().unwrap();
 
 		dbg!(gencmd.cmd_get_throttled()).unwrap();
+	}
+
+	#[test]
+	fn test_cmds_threads_racing() {
+		crate::test::setup_global();
+
+		let threads: Vec<_> = (0 .. 30).map(
+			|i| match i % 3 {
+				0 => {
+					std::thread::spawn(|| {
+						let mut gencmd = Gencmd::new().unwrap();
+						gencmd.cmd_get_throttled().unwrap();
+					})
+				}
+				1 => {
+					std::thread::spawn(|| {
+						let mut gencmd = Gencmd::new().unwrap();
+						gencmd.cmd_measure_clock_arm().unwrap();
+					})
+				}
+				2 => {
+					std::thread::spawn(|| {
+						let mut gencmd = Gencmd::new().unwrap();
+						gencmd.cmd_measure_temp().unwrap();
+					})
+				}
+				_ => unreachable!()
+			}
+		).collect();
+
+		for thread in threads {
+			thread.join().unwrap();
+		}
 	}
 }

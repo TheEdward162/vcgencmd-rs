@@ -145,7 +145,6 @@ pub fn parse_field<'a, T: ParseFieldType<'a>>(
 		}
 		source = &source[prefix.len() ..];
 	}
-	eprintln!("Without prefix: {}", source);
 
 	// value
 	let (new_source, value) = T::parse(source)?;
@@ -158,7 +157,6 @@ pub fn parse_field<'a, T: ParseFieldType<'a>>(
 		}
 		source = &source[suffix.len() ..];
 	}
-	eprintln!("Without suffix: {}", source);
 
 	Ok((source, value))
 }
