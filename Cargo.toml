@@ -1,0 +1,24 @@
+[package]
+name = "vcgencmd-rs"
+version = "0.1.0"
+edition = "2018"
+authors = ["TheEdward162 <TheEdward162@gmail.com>"]
+license = "MIT/Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/TheEdward162/vcgencmd-rs"
+keywords = ["raspberrypi", "raspberry", "videocore", "bindings", "vcgencmd"]
+
+[[bin]]
+name = "vcgencmd"
+
+[features]
+default = []
+run_bindgen = ["bindgen"]
+simulated_ffi = []
+
+[dependencies]
+thiserror = "1"
+log = "0.4"
+
+[build-dependencies]
+bindgen = { version = "0.58", optional = true }
