@@ -1,3 +1,5 @@
+use std::{ffi::CStr, sync::{Arc, Weak, Mutex, Once}};
+
 pub mod commands;
 pub mod error;
 pub mod ffi;
@@ -8,19 +10,50 @@ pub mod simulated;
 
 use error::*;
 
-/// Best-effort wrapper around gencmd interface.
-///
-/// It's probably not a good idea to have multiple instances of this within one process.
-/// There is no documentation so it's hard to know what exactly is allowed.
-// TODO: Maybe a global lazy singleton?
-pub struct Gencmd {
+static ONCE_INIT: Once = Once::new();
+static mut GLOBAL_INSTANCE: Option<Mutex<Weak<GlobalInstance>>> = None;
+
+struct GlobalInstance {
 	instance: ffi::VCHI_INSTANCE_T,
 	#[allow(dead_code)] // :shrug:
-	connection: *mut ffi::VCHI_CONNECTION_T,
-	buffer: [u8; ffi::GENCMDSERVICE_MSGFIFO_SIZE as usize]
+	connection: *mut ffi::VCHI_CONNECTION_T
 }
-impl Gencmd {
-	pub fn new() -> Result<Self, GencmdInitError> {
+impl GlobalInstance {
+	/// Returns a singleton instance.
+	///
+	/// If the instance already exists, the same instance is returned.
+	///
+	/// Otherwise a new instance is created and returned.
+	pub fn instance() -> Result<Arc<Self>, GencmdInitError> {
+		ONCE_INIT.call_once(
+			// SAFETY: Is only ever run once and other threads are blocked while it is running
+			|| unsafe {
+				GLOBAL_INSTANCE.replace(
+					Mutex::new(Weak::new())
+				);
+			}
+		);
+
+		// SAFETY: The above ONCE_INIT makes sure the mutex is initialized
+		let mut lock = unsafe { GLOBAL_INSTANCE.as_ref().unwrap().lock().expect("mutex poisoned") };
+		
+		let instance = match lock.upgrade() {
+			Some(instance) => instance,
+			None => {
+				let new_instance = Arc::new(
+					Self::new()?
+				);
+
+				*lock = Arc::downgrade(&new_instance);
+
+				new_instance
+			}
+		};
+
+		Ok(instance)
+	}
+
+	fn new() -> Result<Self, GencmdInitError> {
 		unsafe {
 			ffi::vcos_init()
 				.to_result()
@@ -44,93 +77,71 @@ impl Gencmd {
 		log::debug!("instance: {:p}", instance);
 		log::debug!("connection: {:p}", connection);
 
-		Ok(Gencmd {
-			instance,
-			connection,
-			buffer: [0u8; ffi::GENCMDSERVICE_MSGFIFO_SIZE as usize]
-		})
+		Ok(
+			GlobalInstance {
+				instance,
+				connection
+			}
+		)
 	}
 
-	/// Send a string command and receive a string response.
+	/// Sends a command to the instance.
 	///
-	/// This function does not parse the command
-	pub fn cmd_send(&mut self, command: &str) -> Result<&str, GencmdCmdError> {
+	/// Will panic if this instance has been deinitialized.
+	pub fn send_command(&self, command: &CStr) -> Result<(), GencmdCmdError> {
+		const FORMAT: &'static [u8] = b"%s\0";
+
 		if self.is_deinitialized() {
 			panic!("This instance has been deinitialized");
 		}
 
-		const FORMAT: &'static [u8] = b"%s\0";
-
-		if command.len() > ffi::GENCMD_MAX_LENGTH as usize {
+		if command.to_bytes().len() + 1 > ffi::GENCMD_MAX_LENGTH as usize {
 			return Err(GencmdCmdError::CommandTooLong)
 		}
 
-		// use buffer to get that null-terminated goodness of a string
-		self.buffer[.. command.len()].copy_from_slice(command.as_bytes());
-		self.buffer[command.len()] = 0;
-
 		// SAFETY: Things are initialized, the strings are null terminated,
-		// the format takes one string argument (internally valls vsnprintf)
+		// the format takes one string argument (internally calls vsnprintf)
 		let result = unsafe {
 			ffi::vc_gencmd_send(
 				FORMAT.as_ptr() as *const std::os::raw::c_char,
-				self.buffer.as_ptr()
+				command.as_ptr()
 			)
 		};
 		if result != 0 {
 			return Err(GencmdCmdError::Send)
 		}
 
-		// SAFETY: we have mutable access to self and pass in the correct buffer len
+		Ok(())
+	}
+
+	/// Retrieves the response from the instance.
+	///
+	/// Returns number of bytes read into `buffer` (excluding the null terminator).
+	///
+	/// Will panic if this instance has been deinitialized.
+	pub fn retrieve_response(&self, buffer: &mut [u8]) -> Result<usize, GencmdCmdError> {
+		if self.is_deinitialized() {
+			panic!("This instance has been deinitialized");
+		}
+
+		// SAFETY: we have mutable access to buffer and pass in the correct buffer len
 		let result = unsafe {
 			ffi::vc_gencmd_read_response(
-				self.buffer.as_mut_ptr() as *mut std::os::raw::c_char,
-				self.buffer.len() as std::os::raw::c_int
+				buffer.as_mut_ptr() as *mut std::os::raw::c_char,
+				buffer.len() as std::os::raw::c_int
 			)
 		};
 		if result != 0 {
 			return Err(GencmdCmdError::Read)
 		}
 
-		let response = {
-			// strlen, but sane
-			let len = self
-				.buffer
-				.iter()
-				.position(|&b| b == 0)
-				.unwrap_or(self.buffer.len());
+		// strlen, but sane
+		let len = buffer
+			.iter()
+			.position(|&b| b == 0)
+			.unwrap_or(buffer.len());
 
-			std::str::from_utf8(&self.buffer[.. len])?
-		};
-		log::debug!("vc response: {}", response);
-
-		if response.starts_with("error=") {
-			let error = Self::parse_error(response)?;
-			return Err(error.into())
-		}
-
-		Ok(response)
-	}
-
-	fn parse_error(response: &str) -> Result<GencmdErrorResponse, GencmdCmdError> {
-		let (response, code) = response::parse_field_simple::<i32>(response, "error")
-			.map_err(GencmdCmdError::from_invalid_format)?;
-		let (_, message) = response::parse_field_simple::<&str>(response, "error_msg")
-			.map_err(GencmdCmdError::from_invalid_format)?;
-
-		log::error!("gencmd returned: code: {} message: {}", code, message);
-
-		let error = match code {
-			1 => GencmdErrorResponse::CommandNotRegistered,
-			2 => GencmdErrorResponse::InvalidArguments,
-			_ => {
-				return Err(GencmdCmdError::InvalidResponseFormat(
-					"Invalid code".to_string().into()
-				))
-			}
-		};
-
-		Ok(error)
+		Ok(len)
 	}
 
 	/// Returns true if `self.deinit` has been called at least once on this instance.
@@ -163,16 +174,85 @@ impl Gencmd {
 		Ok(())
 	}
 }
-// SAFETY: Interally the thing uses a mutex
-unsafe impl Send for Gencmd {}
-impl Drop for Gencmd {
+impl Drop for GlobalInstance {
 	fn drop(&mut self) {
 		match self.deinit() {
 			Ok(()) => (),
 			Err(err) => {
-				log::error!("Gencmd deinitialization failed inside drop: {}", err);
-				panic!("Gencmd deinitialization failed inside drop: {}", err);
+				log::error!("gencmd deinitialization failed inside drop: {}", err);
+				panic!("gencmd deinitialization failed inside drop: {}", err);
 			}
 		}
+	}
+}
+
+/// A wrapper around the gencmd interface.
+///
+/// This holds an internal buffer for communication and an Arc to the instance.
+#[derive(Clone)]
+pub struct Gencmd {
+	instance: Arc<GlobalInstance>,
+	buffer: [u8; ffi::GENCMDSERVICE_MSGFIFO_SIZE as usize]
+}
+impl Gencmd {
+	pub fn new() -> Result<Self, GencmdInitError> {
+		let instance = GlobalInstance::instance()?;
+
+		Ok(Gencmd {
+			instance,
+			buffer: [0u8; ffi::GENCMDSERVICE_MSGFIFO_SIZE as usize]
+		})
+	}
+
+	/// Send a string command and receive a string response.
+	///
+	/// This function does not parse the response unless it is the error.
+	pub fn cmd_send(&mut self, command: &str) -> Result<&str, GencmdCmdError> {
+		if command.len() >= ffi::GENCMD_MAX_LENGTH as usize {
+			return Err(GencmdCmdError::CommandTooLong)
+		}
+		
+		// use buffer to get that null-terminated goodness of a string
+		self.buffer[.. command.len()].copy_from_slice(command.as_bytes());
+		self.buffer[command.len()] = 0;
+
+		self.instance.send_command(
+			CStr::from_bytes_with_nul(&self.buffer[..= command.len()]).unwrap()
+		)?;
+
+		let len = self.instance.retrieve_response(
+			&mut self.buffer
+		)?;
+
+		let response = std::str::from_utf8(&self.buffer[.. len])?;
+		log::debug!("vc response: {}", response);
+
+		if response.starts_with("error=") {
+			let error = Self::parse_error(response)?;
+			return Err(error.into())
+		}
+
+		Ok(response)
+	}
+
+	fn parse_error(response: &str) -> Result<GencmdErrorResponse, GencmdCmdError> {
+		let (response, code) = response::parse_field_simple::<i32>(response, "error")
+			.map_err(GencmdCmdError::from_invalid_format)?;
+		let (_, message) = response::parse_field_simple::<&str>(response, "error_msg")
+			.map_err(GencmdCmdError::from_invalid_format)?;
+
+		log::error!("gencmd returned: code: {} message: {}", code, message);
+
+		let error = match code {
+			1 => GencmdErrorResponse::CommandNotRegistered,
+			2 => GencmdErrorResponse::InvalidArguments,
+			_ => {
+				return Err(GencmdCmdError::InvalidResponseFormat(
+					"Invalid code".to_string().into()
+				))
+			}
+		};
+
+		Ok(error)
 	}
 }
