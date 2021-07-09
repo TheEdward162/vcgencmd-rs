@@ -2,14 +2,12 @@ use std::{ffi::CStr, sync::{Arc, Weak, Mutex}};
 
 use once_cell::sync::Lazy;
 
-pub mod commands;
 pub mod error;
 pub mod ffi;
-pub mod response;
-pub mod local;
+pub mod wrapper;
 
 pub use error::*;
-pub use local::*;
+pub use wrapper::*;
 
 type StaticGlobalInstance = Mutex<Weak<Mutex<GlobalInstance>>>;
 pub static GLOBAL_INSTANCE: Lazy<StaticGlobalInstance> = Lazy::new(

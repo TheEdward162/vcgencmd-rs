@@ -1,5 +1,5 @@
 [package]
-name = "vcgencmd-rs"
+name = "videocore-gencmd"
 version = "0.1.0"
 edition = "2018"
 authors = ["TheEdward162 <TheEdward162@gmail.com>"]
@@ -7,6 +7,7 @@ license = "MIT/Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/TheEdward162/vcgencmd-rs"
 keywords = ["raspberrypi", "raspberry", "videocore", "bindings", "vcgencmd"]
+description = "Actual FFI bindings to Videocore gencmd funcionality"
 
 [[bin]]
 name = "vcgencmd"

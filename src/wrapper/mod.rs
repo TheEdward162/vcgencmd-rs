@@ -1,6 +1,9 @@
 use std::{ffi::CStr, sync::{Arc, Mutex}};
 
-use crate::{ffi, error::*, response, GlobalInstance};
+use crate::{ffi, error::*, GlobalInstance};
+
+pub mod response;
+pub mod commands;
 
 /// A wrapper around the gencmd interface.
 ///
