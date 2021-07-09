@@ -210,10 +210,10 @@ mod test {
 	pub fn setup_global() {
 		ONCE.call_once(
 			|| {
-				edwardium_logger::Logger::new(
-					edwardium_logger::targets::stderr::StderrTarget::default(),
-					std::time::Instant::now()
-				).init_boxed().expect("Could not initialize logger");
+				// edwardium_logger::Logger::new(
+				// 	edwardium_logger::targets::stderr::StderrTarget::new(log::Level::Trace, Default::default()),
+				// 	std::time::Instant::now()
+				// ).init_boxed().expect("Could not initialize logger");
 			}
 		);
 	}
