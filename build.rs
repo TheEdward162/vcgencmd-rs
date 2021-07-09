@@ -1,5 +1,5 @@
 fn main() {
-	#[cfg(not(feature = "simulated_ffi"))]
+	#[cfg(not(feature = "mock_vc_ffi"))]
 	{
 		println!("cargo:rustc-link-lib=vchiq_arm");
 		println!("cargo:rustc-link-lib=vcos");

@@ -1,5 +1,8 @@
 #![allow(non_camel_case_types)]
 
+#[cfg(feature = "mock_vc_ffi")]
+pub mod mock;
+
 #[cfg(feature = "run_bindgen")]
 mod inner {
 	include!(concat!(env!("OUT_DIR"), "/bindings.rs"));

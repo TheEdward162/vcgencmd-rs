@@ -8,9 +8,6 @@ pub mod ffi;
 pub mod response;
 pub mod local;
 
-#[cfg(feature = "simulated_ffi")]
-pub mod simulated;
-
 pub use error::*;
 pub use local::*;
 

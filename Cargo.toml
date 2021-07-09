@@ -14,7 +14,7 @@ name = "vcgencmd"
 [features]
 default = []
 run_bindgen = ["bindgen"]
-simulated_ffi = []
+mock_vc_ffi = []
 
 [dependencies]
 once_cell = "1.8"

@@ -2,7 +2,7 @@ use std::{ffi::CStr, sync::Mutex};
 
 use once_cell::sync::Lazy;
 
-use super::ffi::{VCHI_CONNECTION_T, VCHI_INSTANCE_T, VCOS_STATUS_T};
+use super::{VCHI_CONNECTION_T, VCHI_INSTANCE_T, VCOS_STATUS_T};
 
 #[no_mangle]
 pub extern "C" fn vcos_init() -> VCOS_STATUS_T {
@@ -81,7 +81,7 @@ pub extern "C" fn vc_gencmd_send(
 	let format = unsafe { CStr::from_ptr(format) };
 	// not going to reimplement printf
 	if format.to_bytes() != b"%s" {
-		log::debug!("Unsupported printf format for simulated ffi");
+		log::debug!("Unsupported printf format for mock ffi");
 		*lock = RESPONSE_ERROR_1;
 		return 0;
 	}
@@ -89,7 +89,7 @@ pub extern "C" fn vc_gencmd_send(
 	let command = match unsafe { CStr::from_ptr(arg1) }.to_str() {
 		Ok(command) => command,
 		Err(err) => {
-			log::debug!("Unsupported command bytes for simulated ffi: {}", err);
+			log::debug!("Unsupported command bytes for mock ffi: {}", err);
 			*lock = RESPONSE_ERROR_1;
 			return 0;
 		}
