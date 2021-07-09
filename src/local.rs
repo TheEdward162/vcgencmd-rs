@@ -35,9 +35,12 @@ impl Gencmd {
 		let len = {
 			let mut lock = self.instance.lock().expect("mutex poisoned");
 
-			lock.send_command(
-				CStr::from_bytes_with_nul(&self.buffer[..= command.len()]).unwrap()
-			)?;
+			// SAFETY: We call the retrieve right under
+			unsafe {
+				lock.send_command(
+					CStr::from_bytes_with_nul(&self.buffer[..= command.len()]).unwrap()
+				)?;
+			}
 
 			let len = lock.retrieve_response(
 				&mut self.buffer

@@ -87,7 +87,12 @@ impl GlobalInstance {
 	///
 	/// ### Panic
 	/// Will panic if this instance has been deinitialized.
-	pub fn send_command(&mut self, command: &CStr) -> Result<(), GencmdCmdError> {
+	///
+	/// ### Safety
+	/// Looks like the response must be picked up before another thread issues a send, otherwise
+	/// the entire _system_ gets broken and all communication with vc gencmd starts going haywire.
+	#[allow(unused_unsafe)]
+	unsafe fn send_command(&mut self, command: &CStr) -> Result<(), GencmdCmdError> {
 		const FORMAT: &'static [u8] = b"%s\0";
 
 		if self.is_deinitialized() {
@@ -121,7 +126,7 @@ impl GlobalInstance {
 	///
 	/// ### Panic
 	/// Will panic if this instance has been deinitialized.
-	pub fn retrieve_response(&mut self, buffer: &mut [u8]) -> Result<usize, GencmdCmdError> {
+	fn retrieve_response(&mut self, buffer: &mut [u8]) -> Result<usize, GencmdCmdError> {
 		if self.is_deinitialized() {
 			panic!("This instance has been deinitialized");
 		}
