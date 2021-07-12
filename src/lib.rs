@@ -1,4 +1,7 @@
-use std::{ffi::CStr, sync::{Arc, Weak, Mutex}};
+use std::{
+	ffi::CStr,
+	sync::{Arc, Mutex, Weak}
+};
 
 use once_cell::sync::Lazy;
 
@@ -10,9 +13,7 @@ pub use error::*;
 pub use wrapper::*;
 
 type StaticGlobalInstance = Mutex<Weak<Mutex<GlobalInstance>>>;
-pub static GLOBAL_INSTANCE: Lazy<StaticGlobalInstance> = Lazy::new(
-	|| Mutex::new(Weak::new())
-);
+pub static GLOBAL_INSTANCE: Lazy<StaticGlobalInstance> = Lazy::new(|| Mutex::new(Weak::new()));
 
 pub struct GlobalInstance {
 	instance: ffi::VCHI_INSTANCE_T,
@@ -27,13 +28,11 @@ impl GlobalInstance {
 	/// Otherwise a new instance is created and returned.
 	pub fn instance() -> Result<Arc<Mutex<Self>>, GencmdInitError> {
 		let mut lock = GLOBAL_INSTANCE.lock().expect("mutex poisoned");
-		
+
 		let instance = match lock.upgrade() {
 			Some(instance) => instance,
 			None => {
-				let new_instance = Arc::new(
-					Mutex::new(Self::new()?)
-				);
+				let new_instance = Arc::new(Mutex::new(Self::new()?));
 
 				*lock = Arc::downgrade(&new_instance);
 
@@ -46,7 +45,7 @@ impl GlobalInstance {
 
 	fn new() -> Result<Self, GencmdInitError> {
 		log::info!("Initializing videocore gencmd instance");
-		
+
 		unsafe {
 			ffi::vcos_init()
 				.to_result()
@@ -70,12 +69,10 @@ impl GlobalInstance {
 		log::debug!("instance: {:p}", instance);
 		log::debug!("connection: {:p}", connection);
 
-		Ok(
-			GlobalInstance {
-				instance,
-				connection
-			}
-		)
+		Ok(GlobalInstance {
+			instance,
+			connection
+		})
 	}
 
 	/// Sends a command to the instance.
@@ -139,13 +136,11 @@ impl GlobalInstance {
 		}
 
 		// strlen, but sane
-		let len = buffer
-			.iter()
-			.position(|&b| b == 0)
-			.unwrap_or(buffer.len());
+		let len = buffer.iter().position(|&b| b == 0).unwrap_or(buffer.len());
 
 		log::debug!(
-			"retrieved vc response: {:?}", CStr::from_bytes_with_nul(&buffer[..= len]).unwrap()
+			"retrieved vc response: {:?}",
+			CStr::from_bytes_with_nul(&buffer[..= len]).unwrap()
 		);
 
 		Ok(len)
@@ -203,13 +198,11 @@ mod test {
 
 	static ONCE: Once = Once::new();
 	pub fn setup_global() {
-		ONCE.call_once(
-			|| {
-				// edwardium_logger::Logger::new(
-				// 	edwardium_logger::targets::stderr::StderrTarget::new(log::Level::Trace, Default::default()),
-				// 	std::time::Instant::now()
-				// ).init_boxed().expect("Could not initialize logger");
-			}
-		);
+		ONCE.call_once(|| {
+			// edwardium_logger::Logger::new(
+			// 	edwardium_logger::targets::stderr::StderrTarget::new(log::Level::Trace, Default::default()),
+			// 	std::time::Instant::now()
+			// ).init_boxed().expect("Could not initialize logger");
+		});
 	}
 }

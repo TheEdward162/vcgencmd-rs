@@ -7,13 +7,15 @@ pub struct ThrottleStatus {
 	pub throttled: bool,
 	pub soft_temperature_limit: bool
 }
+#[rustfmt::skip]
 impl ThrottleStatus {
 	pub const BIT_UNDER_VOLTAGE: u32 = 1;
 	pub const BIT_FREQUENCT_CAPPED: u32 = 2;
 	pub const BIT_THROTTLED: u32 = 4;
 	pub const BIT_SOFT_TEMPERATURE_LIMIT: u32 = 8;
 	pub const SHIFT_OCCURED: usize = 16;
-
+}
+impl ThrottleStatus {
 	pub fn from_current(value: u32) -> Self {
 		ThrottleStatus {
 			under_voltage: value & Self::BIT_UNDER_VOLTAGE != 0,
@@ -29,9 +31,9 @@ impl ThrottleStatus {
 
 	pub fn to_current(self) -> u32 {
 		(self.under_voltage as u32) * Self::BIT_UNDER_VOLTAGE
-		| (self.frequency_capped as u32) * Self::BIT_FREQUENCT_CAPPED
-		| (self.throttled as u32) * Self::BIT_THROTTLED
-		| (self.soft_temperature_limit as u32) * Self::BIT_SOFT_TEMPERATURE_LIMIT
+			| (self.frequency_capped as u32) * Self::BIT_FREQUENCT_CAPPED
+			| (self.throttled as u32) * Self::BIT_THROTTLED
+			| (self.soft_temperature_limit as u32) * Self::BIT_SOFT_TEMPERATURE_LIMIT
 	}
 
 	pub fn to_occured(self) -> u32 {
@@ -149,29 +151,23 @@ mod test {
 	fn test_cmds_threads_racing() {
 		crate::test::setup_global();
 
-		let threads: Vec<_> = (0 .. 30).map(
-			|i| match i % 3 {
-				0 => {
-					std::thread::spawn(|| {
-						let mut gencmd = Gencmd::new().unwrap();
-						gencmd.cmd_get_throttled().unwrap();
-					})
-				}
-				1 => {
-					std::thread::spawn(|| {
-						let mut gencmd = Gencmd::new().unwrap();
-						gencmd.cmd_measure_clock_arm().unwrap();
-					})
-				}
-				2 => {
-					std::thread::spawn(|| {
-						let mut gencmd = Gencmd::new().unwrap();
-						gencmd.cmd_measure_temp().unwrap();
-					})
-				}
+		let threads: Vec<_> = (0 .. 30)
+			.map(|i| match i % 3 {
+				0 => std::thread::spawn(|| {
+					let mut gencmd = Gencmd::new().unwrap();
+					gencmd.cmd_get_throttled().unwrap();
+				}),
+				1 => std::thread::spawn(|| {
+					let mut gencmd = Gencmd::new().unwrap();
+					gencmd.cmd_measure_clock_arm().unwrap();
+				}),
+				2 => std::thread::spawn(|| {
+					let mut gencmd = Gencmd::new().unwrap();
+					gencmd.cmd_measure_temp().unwrap();
+				}),
 				_ => unreachable!()
-			}
-		).collect();
+			})
+			.collect();
 
 		for thread in threads {
 			thread.join().unwrap();

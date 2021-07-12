@@ -65,9 +65,7 @@ const RESPONSE_COMMANDS: &'static [u8] = b"commands=\"vcos, ap_output_control, a
 const RESPONSE_GET_THROTTLED: &'static [u8] = b"throttled=0x0\0";
 const RESPONSE_MEASURE_CLOCK_ARM: &'static [u8] = b"frequency(48)=6000000\0";
 const RESPONSE_MEASURE_TEMP: &'static [u8] = b"temp=45.6'C\0";
-static RESPONSE_LAST_SEND: Lazy<Mutex<&'static [u8]>> = Lazy::new(
-	|| Mutex::new(RESPONSE_ERROR_1)
-);
+static RESPONSE_LAST_SEND: Lazy<Mutex<&'static [u8]>> = Lazy::new(|| Mutex::new(RESPONSE_ERROR_1));
 
 #[no_mangle]
 pub extern "C" fn vc_gencmd_send(
@@ -83,7 +81,7 @@ pub extern "C" fn vc_gencmd_send(
 	if format.to_bytes() != b"%s" {
 		log::debug!("Unsupported printf format for mock ffi");
 		*lock = RESPONSE_ERROR_1;
-		return 0;
+		return 0
 	}
 
 	let command = match unsafe { CStr::from_ptr(arg1) }.to_str() {
@@ -91,7 +89,7 @@ pub extern "C" fn vc_gencmd_send(
 		Err(err) => {
 			log::debug!("Unsupported command bytes for mock ffi: {}", err);
 			*lock = RESPONSE_ERROR_1;
-			return 0;
+			return 0
 		}
 	};
 
@@ -121,13 +119,12 @@ pub extern "C" fn vc_gencmd_read_response(
 		unsafe {
 			*response = 0;
 		}
-		return -1;
+		return -1
 	}
 
 	unsafe {
-		std::slice::from_raw_parts_mut(
-			response as *mut u8, mock_response.len()
-		).copy_from_slice(mock_response);
+		std::slice::from_raw_parts_mut(response as *mut u8, mock_response.len())
+			.copy_from_slice(mock_response);
 	}
 
 	0

@@ -1,9 +1,12 @@
-use std::{ffi::CStr, sync::{Arc, Mutex}};
+use std::{
+	ffi::CStr,
+	sync::{Arc, Mutex}
+};
 
-use crate::{ffi, error::*, GlobalInstance};
+use crate::{error::*, ffi, GlobalInstance};
 
-pub mod response;
 pub mod commands;
+pub mod response;
 
 /// A wrapper around the gencmd interface.
 ///
@@ -30,7 +33,7 @@ impl Gencmd {
 		if command.len() >= ffi::GENCMD_MAX_LENGTH as usize {
 			return Err(GencmdCmdError::CommandTooLong)
 		}
-		
+
 		// use buffer to get that null-terminated goodness of a C string
 		self.buffer[.. command.len()].copy_from_slice(command.as_bytes());
 		self.buffer[command.len()] = 0;
@@ -45,9 +48,7 @@ impl Gencmd {
 				)?;
 			}
 
-			let len = lock.retrieve_response(
-				&mut self.buffer
-			)?;
+			let len = lock.retrieve_response(&mut self.buffer)?;
 
 			len
 		};

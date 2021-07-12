@@ -31,7 +31,9 @@ fn setup_logger(level: log::Level) {
 	edwardium_logger::Logger::new(
 		edwardium_logger::targets::stderr::StderrTarget::new(level, Default::default()),
 		std::time::Instant::now()
-	).init_boxed().expect("Could not initialize logger");
+	)
+	.init_boxed()
+	.expect("Could not initialize logger");
 }
 
 fn main() -> anyhow::Result<()> {
@@ -57,13 +59,11 @@ fn main() -> anyhow::Result<()> {
 
 	if raw {
 		let first_command = command.next().unwrap().to_string();
-		let command = command.fold(
-			first_command, |mut acc, curr| {
-				acc.push(' ');
-				acc.push_str(curr);
-				acc
-			}
-		);
+		let command = command.fold(first_command, |mut acc, curr| {
+			acc.push(' ');
+			acc.push_str(curr);
+			acc
+		});
 
 		let response = instance.cmd_send(&command)?;
 		println!("{}", response);
@@ -93,5 +93,3 @@ fn main() -> anyhow::Result<()> {
 
 	Ok(())
 }
-
-
