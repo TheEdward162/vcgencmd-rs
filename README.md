@@ -1,6 +1,6 @@
 # videocore-gencmd
 
-Actual FFI bindings and reimplementation of the Videocore gencmd interface in Rust.
+Actual FFI bindings and higher-level reimplementation of the Videocore gencmd interface in Rust.
 
 ## Bindings
 
@@ -10,12 +10,32 @@ The actual generation is gated behind the `run_bindgen` feature because not all 
 
 ## Architecture
 
-Since the broadcom libraries are very much unfinished, bugs also affect the architecture of the project. The videocore state and instances are provided as a global, lazy-initialized, weak-reference-counted singleton. This means that on the first use the global state is initialized and when all current uses are dropped the global singleton is deinitialized as well. When another instance is needed it is initialized on demand again.
+Since the broadcom libraries are very much unfinished, bugs also affect the architecture of the project. The videocore state and instances are provided as a global, lazy-initialized, weak-reference-counted singleton. This means that on the first use the global state is initialized. When all current uses are dropped the global singleton is deinitialized as well. When another instance is needed it is initialized on demand again.
 
 ## Commands
 
-Since the gencmd interface is a simple textual protocol, commands can be used even without specific implementation provided. The response is then returned as a string. Parsing utilities are provided in the crate and response parsing is implemented.
+Since the gencmd interface is a simple textual protocol, commands can be used even without specific implementation provided. The response is then returned as a string. Parsing utilities are provided in the crate and response parsing is implemented. Errors returned from commands sent through the wrapping interface are always parsed.
 
-## [WIP] CLI
+## CLI
 
-A cli should be implemented in `src/bin/vcgencmd` that mirrors the original C binary (as available in raspberrypi-userland/host_applications/linux/apps/gencmd/gencmd.c).
+A cli is implemented in `src/bin/vcgencmd` that implements the same functionality as the original C binary (as available in raspberrypi-userland/host_applications/linux/apps/gencmd/gencmd.c). The cli app allows both raw processing (which sends the command as provided and only parses error responses) and a response-parsing command recognition for commands which are implemented.
+
+Here is the output of `videocore-gencmd --help`:
+```
+videocore-gencmd 0.1.0
+
+USAGE:
+    vcgencmd [FLAGS] [OPTIONS] <command>...
+
+FLAGS:
+    -h, --help       Prints help information
+    -r, --raw        Do not attempt to recognize the command nor parse the response (errors are always parsed)
+    -V, --version    Prints version information
+
+OPTIONS:
+    -v, --verbosity <verbosity>    Level of verbosity [default: Off]  [possible values: Off, Error, Warn, Info, Debug,
+                                   Trace]
+
+ARGS:
+    <command>...
+```

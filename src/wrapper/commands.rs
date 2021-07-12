@@ -1,6 +1,6 @@
 use super::{response, Gencmd, GencmdCmdError};
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone, Copy)]
 pub struct ThrottleStatus {
 	pub under_voltage: bool,
 	pub frequency_capped: bool,
@@ -8,10 +8,10 @@ pub struct ThrottleStatus {
 	pub soft_temperature_limit: bool
 }
 impl ThrottleStatus {
-	pub const BIT_FREQUENCT_CAPPED: u32 = 2;
-	pub const BIT_SOFT_TEMPERATURE_LIMIT: u32 = 8;
-	pub const BIT_THROTTLED: u32 = 4;
 	pub const BIT_UNDER_VOLTAGE: u32 = 1;
+	pub const BIT_FREQUENCT_CAPPED: u32 = 2;
+	pub const BIT_THROTTLED: u32 = 4;
+	pub const BIT_SOFT_TEMPERATURE_LIMIT: u32 = 8;
 	pub const SHIFT_OCCURED: usize = 16;
 
 	pub fn from_current(value: u32) -> Self {
@@ -26,6 +26,17 @@ impl ThrottleStatus {
 	pub fn from_occured(value: u32) -> Self {
 		Self::from_current(value >> Self::SHIFT_OCCURED)
 	}
+
+	pub fn to_current(self) -> u32 {
+		(self.under_voltage as u32) * Self::BIT_UNDER_VOLTAGE
+		| (self.frequency_capped as u32) * Self::BIT_FREQUENCT_CAPPED
+		| (self.throttled as u32) * Self::BIT_THROTTLED
+		| (self.soft_temperature_limit as u32) * Self::BIT_SOFT_TEMPERATURE_LIMIT
+	}
+
+	pub fn to_occured(self) -> u32 {
+		self.to_current() << Self::SHIFT_OCCURED
+	}
 }
 
 #[derive(Debug, Default)]
@@ -39,6 +50,11 @@ impl From<u32> for CpuThrottled {
 			current: ThrottleStatus::from_current(value),
 			occured: ThrottleStatus::from_occured(value)
 		}
+	}
+}
+impl From<CpuThrottled> for u32 {
+	fn from(value: CpuThrottled) -> Self {
+		value.current.to_current() | value.occured.to_occured()
 	}
 }
 

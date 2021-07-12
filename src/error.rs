@@ -80,10 +80,10 @@ pub enum GencmdCmdError {
 	#[error(transparent)]
 	ErrorResponse(#[from] GencmdErrorResponse),
 	#[error("Response has invalid format: {0}")]
-	InvalidResponseFormat(Box<dyn std::error::Error>)
+	InvalidResponseFormat(Box<dyn std::error::Error + Send + Sync>)
 }
 impl GencmdCmdError {
-	pub fn from_invalid_format(error: impl std::error::Error + 'static) -> Self {
+	pub fn from_invalid_format(error: impl std::error::Error + Send + Sync + 'static) -> Self {
 		GencmdCmdError::InvalidResponseFormat(Box::new(error))
 	}
 }

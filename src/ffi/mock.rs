@@ -95,6 +95,7 @@ pub extern "C" fn vc_gencmd_send(
 		}
 	};
 
+	log::trace!("vc_gencmd_send command: {}", command);
 	*lock = match command {
 		"commands" => RESPONSE_COMMANDS,
 		"get_throttled" => RESPONSE_GET_THROTTLED,
