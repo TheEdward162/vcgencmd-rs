@@ -55,7 +55,9 @@ pub enum GencmdInitError {
 	#[error("Failed to initialize vchi")]
 	VchiInit,
 	#[error("Failed to create vchi connection")]
-	VchiConnect
+	VchiConnect,
+	#[error("Another instance is already initialized")]
+	AlreadyInitialized
 }
 
 #[derive(Error, Debug)]

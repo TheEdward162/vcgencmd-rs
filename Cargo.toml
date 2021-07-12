@@ -14,13 +14,15 @@ name = "vcgencmd"
 required-features = ["cli_app"]
 
 [features]
-default = []
+default = ["global_singleton"]
+
 run_bindgen = ["bindgen"]
-mock_vc_ffi = []
+mock_vc_ffi = ["once_cell"]
 cli_app = ["clap", "anyhow", "edwardium_logger"]
+global_singleton = ["once_cell"]
 
 [dependencies]
-once_cell = "1.8"
+once_cell = { version = "1.8", optional = true }
 thiserror = "1"
 log = "0.4"
 

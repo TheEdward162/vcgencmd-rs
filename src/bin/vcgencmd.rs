@@ -1,6 +1,6 @@
 use clap::{App, Arg, ArgMatches};
 
-use videocore_gencmd::Gencmd;
+use videocore_gencmd::prelude::*;
 
 fn parse_cli() -> ArgMatches<'static> {
 	App::new(env!("CARGO_PKG_NAME"))
@@ -55,7 +55,7 @@ fn main() -> anyhow::Result<()> {
 	let raw = matches.is_present("raw");
 	let mut command = matches.values_of("command").unwrap();
 
-	let mut instance = Gencmd::new()?;
+	let mut gencmd = GencmdUnique::new()?;
 
 	if raw {
 		let first_command = command.next().unwrap().to_string();
@@ -65,25 +65,25 @@ fn main() -> anyhow::Result<()> {
 			acc
 		});
 
-		let response = instance.cmd_send(&command)?;
+		let response = gencmd.send_cmd_raw(&command)?;
 		println!("{}", response);
 
 		return Ok(())
 	}
 
 	match command.next().unwrap() {
-		"commands" => instance.cmd_commands()?.into_iter().for_each(|command| println!("{}", command)),
+		"commands" => gencmd.send_cmd::<CmdCommands>()?.into_iter().for_each(|command| println!("{}", command)),
 		"measure_temp" => {
-			let temp = instance.cmd_measure_temp()?;
+			let temp = gencmd.send_cmd::<CmdMeasureTemp>()?;
 			println!("{}", temp);
 		}
 		"get_throttled" => {
-			let throttled = instance.cmd_get_throttled()?;
+			let throttled = gencmd.send_cmd::<CmdGetThrottled>()?;
 			println!("0x{:X}", u32::from(throttled));
 		}
 		"measure_clock" => match command.next() {
 			Some("arm") => {
-				let freq = instance.cmd_measure_clock_arm()?;
+				let freq = gencmd.send_cmd::<CmdMeasureClockArm>()?;
 				println!("{}", freq);
 			}
 			_ => anyhow::bail!("unrecognized arguments to `measure_clock`, try again with `--raw` or add implementation"),

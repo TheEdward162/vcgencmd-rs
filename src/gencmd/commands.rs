@@ -1,8 +1,50 @@
 use super::{
 	response::{self, IntRadix},
-	Gencmd,
+	Command,
 	GencmdCmdError
 };
+
+pub struct CmdCommands;
+impl<'a> Command<'a> for CmdCommands {
+	type Response = Vec<&'a str>;
+
+	const COMMAND_STR: &'static str = "commands";
+
+	fn parse_response(response: &'a str) -> Result<Self::Response, GencmdCmdError> {
+		let (_, commands) = response::parse_field_simple::<&str>(response, "commands")
+			.map_err(GencmdCmdError::from_invalid_format)?;
+
+		Ok(commands.split(", ").collect())
+	}
+}
+
+pub struct CmdMeasureTemp;
+impl<'a> Command<'a> for CmdMeasureTemp {
+	type Response = f32;
+
+	const COMMAND_STR: &'static str = "measure_temp";
+
+	fn parse_response(response: &'a str) -> Result<Self::Response, GencmdCmdError> {
+		let (_, temperature) = response::parse_field::<f32>(response, "temp", None, Some("'C"))
+			.map_err(GencmdCmdError::from_invalid_format)?;
+
+		Ok(temperature)
+	}
+}
+
+pub struct CmdMeasureClockArm;
+impl<'a> Command<'a> for CmdMeasureClockArm {
+	type Response = u64;
+
+	const COMMAND_STR: &'static str = "measure_clock arm";
+
+	fn parse_response(response: &'a str) -> Result<Self::Response, GencmdCmdError> {
+		let (_, frequency) = response::parse_field_simple::<u64>(response, "frequency(48)")
+			.map_err(GencmdCmdError::from_invalid_format)?;
+
+		Ok(frequency)
+	}
+}
 
 #[derive(Default, Debug, Clone, Copy)]
 pub struct ThrottleStatus {
@@ -11,7 +53,7 @@ pub struct ThrottleStatus {
 	pub throttled: bool,
 	pub soft_temperature_limit: bool
 }
-#[rustfmt::skip]
+#[rustfmt::skip] // stop reordering muh constants
 impl ThrottleStatus {
 	pub const BIT_UNDER_VOLTAGE: u32 = 1;
 	pub const BIT_FREQUENCT_CAPPED: u32 = 2;
@@ -64,37 +106,13 @@ impl From<CpuThrottled> for u32 {
 	}
 }
 
-impl Gencmd {
-	pub fn cmd_commands(&mut self) -> Result<Vec<&str>, GencmdCmdError> {
-		let response = self.cmd_send("commands")?;
+pub struct CmdGetThrottled;
+impl<'a> Command<'a> for CmdGetThrottled {
+	type Response = CpuThrottled;
 
-		let (_, commands) = response::parse_field_simple::<&str>(response, "commands")
-			.map_err(GencmdCmdError::from_invalid_format)?;
+	const COMMAND_STR: &'static str = "get_throttled";
 
-		Ok(commands.split(", ").collect())
-	}
-
-	pub fn cmd_measure_temp(&mut self) -> Result<f32, GencmdCmdError> {
-		let response = self.cmd_send("measure_temp")?;
-
-		let (_, temperature) = response::parse_field::<f32>(response, "temp", None, Some("'C"))
-			.map_err(GencmdCmdError::from_invalid_format)?;
-
-		Ok(temperature)
-	}
-
-	pub fn cmd_measure_clock_arm(&mut self) -> Result<u64, GencmdCmdError> {
-		let response = self.cmd_send("measure_clock arm")?;
-
-		let (_, frequency) = response::parse_field_simple::<u64>(response, "frequency(48)")
-			.map_err(GencmdCmdError::from_invalid_format)?;
-
-		Ok(frequency)
-	}
-
-	pub fn cmd_get_throttled(&mut self) -> Result<CpuThrottled, GencmdCmdError> {
-		let response = self.cmd_send("get_throttled")?;
-
+	fn parse_response(response: &'a str) -> Result<Self::Response, GencmdCmdError> {
 		let (_, throttled) =
 			response::parse_field::<IntRadix<u32, 16>>(response, "throttled", Some("0x"), None)
 				.map_err(GencmdCmdError::from_invalid_format)?;
@@ -103,17 +121,19 @@ impl Gencmd {
 	}
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "global_singleton"))]
 mod test {
-	use super::Gencmd;
+	use crate::gencmd::global::GencmdGlobal;
+
+	use super::{CmdCommands, CmdGetThrottled, CmdMeasureClockArm, CmdMeasureTemp};
 
 	#[test]
 	fn test_cmd_commands() {
 		crate::test::setup_global();
 
-		let mut gencmd = Gencmd::new().unwrap();
+		let mut gencmd = GencmdGlobal::new().unwrap();
 
-		let commands = dbg!(gencmd.cmd_commands()).unwrap();
+		let commands = dbg!(gencmd.send_cmd::<CmdCommands>()).unwrap();
 
 		assert!(commands.contains(&"commands"));
 		assert!(commands.contains(&"measure_clock"));
@@ -125,9 +145,9 @@ mod test {
 	fn test_cmd_measure_temp() {
 		crate::test::setup_global();
 
-		let mut gencmd = Gencmd::new().unwrap();
+		let mut gencmd = GencmdGlobal::new().unwrap();
 
-		let temp = dbg!(gencmd.cmd_measure_temp()).unwrap();
+		let temp = dbg!(gencmd.send_cmd::<CmdMeasureTemp>()).unwrap();
 
 		assert!(temp > 0.0);
 	}
@@ -136,9 +156,9 @@ mod test {
 	fn test_cmd_measure_clock_arm() {
 		crate::test::setup_global();
 
-		let mut gencmd = Gencmd::new().unwrap();
+		let mut gencmd = GencmdGlobal::new().unwrap();
 
-		let freq = dbg!(gencmd.cmd_measure_clock_arm()).unwrap();
+		let freq = dbg!(gencmd.send_cmd::<CmdMeasureClockArm>()).unwrap();
 
 		assert!(freq > 0);
 	}
@@ -147,9 +167,9 @@ mod test {
 	fn test_cmd_get_throttled() {
 		crate::test::setup_global();
 
-		let mut gencmd = Gencmd::new().unwrap();
+		let mut gencmd = GencmdGlobal::new().unwrap();
 
-		dbg!(gencmd.cmd_get_throttled()).unwrap();
+		dbg!(gencmd.send_cmd::<CmdGetThrottled>()).unwrap();
 	}
 
 	#[test]
@@ -159,16 +179,19 @@ mod test {
 		let threads: Vec<_> = (0 .. 30)
 			.map(|i| match i % 3 {
 				0 => std::thread::spawn(|| {
-					let mut gencmd = Gencmd::new().unwrap();
-					gencmd.cmd_get_throttled().unwrap();
+					let mut gencmd = GencmdGlobal::new().unwrap();
+
+					gencmd.send_cmd::<CmdGetThrottled>().unwrap();
 				}),
 				1 => std::thread::spawn(|| {
-					let mut gencmd = Gencmd::new().unwrap();
-					gencmd.cmd_measure_clock_arm().unwrap();
+					let mut gencmd = GencmdGlobal::new().unwrap();
+
+					gencmd.send_cmd::<CmdMeasureClockArm>().unwrap();
 				}),
 				2 => std::thread::spawn(|| {
-					let mut gencmd = Gencmd::new().unwrap();
-					gencmd.cmd_measure_temp().unwrap();
+					let mut gencmd = GencmdGlobal::new().unwrap();
+
+					gencmd.send_cmd::<CmdMeasureTemp>().unwrap();
 				}),
 				_ => unreachable!()
 			})
