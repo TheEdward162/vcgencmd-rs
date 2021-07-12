@@ -1,4 +1,8 @@
-use super::{response, Gencmd, GencmdCmdError};
+use super::{
+	response::{self, IntRadix},
+	Gencmd,
+	GencmdCmdError
+};
 
 #[derive(Default, Debug, Clone, Copy)]
 pub struct ThrottleStatus {
@@ -91,10 +95,11 @@ impl Gencmd {
 	pub fn cmd_get_throttled(&mut self) -> Result<CpuThrottled, GencmdCmdError> {
 		let response = self.cmd_send("get_throttled")?;
 
-		let (_, throttled) = response::parse_field::<u32>(response, "throttled", Some("0x"), None)
-			.map_err(GencmdCmdError::from_invalid_format)?;
+		let (_, throttled) =
+			response::parse_field::<IntRadix<u32, 16>>(response, "throttled", Some("0x"), None)
+				.map_err(GencmdCmdError::from_invalid_format)?;
 
-		Ok(CpuThrottled::from(throttled))
+		Ok(CpuThrottled::from(throttled.0))
 	}
 }
 

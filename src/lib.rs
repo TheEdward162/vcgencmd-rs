@@ -13,7 +13,7 @@ pub use error::*;
 pub use wrapper::*;
 
 type StaticGlobalInstance = Mutex<Weak<Mutex<GlobalInstance>>>;
-pub static GLOBAL_INSTANCE: Lazy<StaticGlobalInstance> = Lazy::new(|| Mutex::new(Weak::new()));
+static GLOBAL_INSTANCE: Lazy<StaticGlobalInstance> = Lazy::new(|| Mutex::new(Weak::new()));
 
 pub struct GlobalInstance {
 	instance: ffi::VCHI_INSTANCE_T,
