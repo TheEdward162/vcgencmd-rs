@@ -10,7 +10,13 @@ The actual generation is gated behind the `run_bindgen` feature because not all 
 
 ## Architecture
 
-Since the broadcom libraries are very much unfinished, bugs also affect the architecture of the project. The videocore state and instances are provided as a global, lazy-initialized, weak-reference-counted singleton. This means that on the first use the global state is initialized. When all current uses are dropped the global singleton is deinitialized as well. When another instance is needed it is initialized on demand again.
+Since the broadcom libraries are very much unfinished, bugs also affect the architecture of the project. The videocore state and instances may only be initialized once pre-process.
+
+This is checked at runtime by keeping that information in an `AtomicBool` flag.
+
+One of the ways to share the instance between threads in implemented under the `global_singleton` feature. This provider a global, lazy-initialized, weak-reference-counted singleton. This means that on the first use the global state is initialized. When all current uses are dropped the global singleton is deinitialized as well. When another instance is needed it is initialized on demand again.
+
+Apart from that an instance of `GlobalInstance` can be initialized through its `new` constructor.
 
 ## Commands
 
