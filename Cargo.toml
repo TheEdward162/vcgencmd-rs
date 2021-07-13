@@ -15,12 +15,14 @@ name = "vcgencmd"
 required-features = ["cli_app"]
 
 [features]
-default = ["global_singleton"]
+default = []
 
 run_bindgen = ["bindgen"]
 mock_vc_ffi = ["once_cell"]
 cli_app = ["clap", "anyhow", "edwardium_logger"]
 global_singleton = ["once_cell"]
+
+serde_models = ["serde"]
 
 [dependencies]
 once_cell = { version = "1.8", optional = true }
@@ -30,6 +32,8 @@ log = "0.4"
 clap = { version = "2", optional = true }
 anyhow = { version = "1", optional = true }
 edwardium_logger = { version = "1.2.0", default-features = false, features = ["colored_stderr_output"], optional = true }
+
+serde = { version = "1", optional = true, features = ["derive"] }
 
 [dev-dependencies]
 edwardium_logger = { version = "1.2.0", default-features = false, features = ["colored_stderr_output"] }

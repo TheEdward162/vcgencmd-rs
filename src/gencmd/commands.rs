@@ -8,6 +8,9 @@ use super::{
 	GencmdCmdError
 };
 
+#[cfg(feature = "serde_models")]
+use serde::{Serialize, Deserialize};
+
 pub struct CmdCommands;
 impl<'a> Command<'a> for CmdCommands {
 	type Response = Vec<&'a str>;
@@ -51,6 +54,7 @@ impl<'a> Command<'a> for CmdMeasureClockArm {
 }
 
 #[derive(Default, Debug, Clone, Copy)]
+#[cfg_attr(feature = "serde_models", derive(Serialize, Deserialize))]
 pub struct ThrottleStatus {
 	pub under_voltage: bool,
 	pub frequency_capped: bool,
@@ -92,6 +96,7 @@ impl ThrottleStatus {
 }
 
 #[derive(Debug, Default)]
+#[cfg_attr(feature = "serde_models", derive(Serialize, Deserialize))]
 pub struct CpuThrottled {
 	pub current: ThrottleStatus,
 	pub occured: ThrottleStatus

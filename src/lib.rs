@@ -97,6 +97,10 @@
 //! ### `global_singleton`
 //!
 //! Enables the global singleton implementation as described above.
+//!
+//! ### `serde_models`
+//!
+//! Derive serde `Serialize` and `Deserialize` for custom command response models.
 
 pub mod error;
 pub mod ffi;
