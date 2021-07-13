@@ -5,7 +5,7 @@
 //! Currently implemented commands can be seen in [`gencmd::commands`](gencmd::commands) module. Note that
 //! since the gencmd interface is a simple textual protocol it can be used even without an explicit implementation (see [`Gencmd::send_cmd_raw`](gencmd::Gencmd::send_cmd_raw)).
 //! The advantage of implementing a command specifically is parsing of the response into an appropriate type.
-//! 
+//!
 //! ## Usage
 //!
 //! There are two patterns this library supports out of the box:
