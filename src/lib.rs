@@ -1,3 +1,11 @@
+//! Provides actual bindings and wrapper around VideoCore gencmd interface.
+//!
+//! The raw bindings are available in the [`ffi`](ffi) module.
+//!
+//! Currently implemented commands can be seen in [`gencmd::commands`](gencmd::commands) module. Note that
+//! since the gencmd interface is a simple textual protocol it can be used even without an explicit implementation (see [`Gencmd::send_cmd_raw`](gencmd::Gencmd::send_cmd_raw)).
+//! The advantage of implementing a command specifically is parsing of the response into an appropriate type.
+//! 
 //! ## Usage
 //!
 //! There are two patterns this library supports out of the box:
@@ -6,6 +14,10 @@
 //!
 //! The [`GencmdUnique`](gencmd::unique::GencmdUnique) convenience wrapper provides an easy way to create
 //! a unique instance to be used on one thread at a time.
+//!
+//! Note that there can ever only be one instance of the global context per-process.
+//! Attempting to create multiple instances returns an error. If you need access from multiple threads simultaneously
+//! consider using the global singleton or implementing a similar solution yourself.
 //!
 //! ```
 //! use videocore_gencmd::prelude::*;
@@ -65,6 +77,26 @@
 //! 	freq_measurer.join().unwrap();
 //! }
 //! ```
+//!
+//! ## Features
+//!
+//! ### `run_bindgen`
+//!
+//! Runs the bindgen in build.rs. Without this feature enabled the bindings previously generated and pasted into the sources
+//! are used instead as the bindgen cannot be used on all platforms.
+//!
+//! ### `mock_vc_ffi`
+//!
+//! FFI bindings naturally expect a library to link against. For testing purposes this is not always ideal, so this feature instead
+//! exposes C ABI functions that match the bindings and mock the interface to some extent.
+//!
+//! ### `cli_app`
+//!
+//! This feature gates optional crates needed to build the cli app which functionally mirrors the C binary `vcgencmd`.
+//!
+//! ### `global_singleton`
+//!
+//! Enables the global singleton implementation as described above.
 
 pub mod error;
 pub mod ffi;

@@ -1,3 +1,7 @@
+//! This module implements some of the commands and parsing of their responses, as well as the models of their responses (if needed).
+//!
+//! More commands should be implemented on demand.
+
 use super::{
 	response::{self, IntRadix},
 	Command,
