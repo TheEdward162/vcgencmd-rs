@@ -186,7 +186,7 @@ impl Drop for GlobalInstance {
 	}
 }
 
-// these tests will only pass if there are no other tests that use the global singleton
+// these tests will only pass if there are no other tests that use the global singleton (such as with --test-threads 1)
 #[cfg(test)]
 mod test {
 	use super::{GencmdInitError, GlobalInstance};

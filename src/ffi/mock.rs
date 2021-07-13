@@ -79,7 +79,7 @@ pub extern "C" fn vc_gencmd_send(
 	let format = unsafe { CStr::from_ptr(format) };
 	// not going to reimplement printf
 	if format.to_bytes() != b"%s" {
-		log::debug!("Unsupported printf format for mock ffi");
+		log::warn!("Unsupported printf format for mock ffi");
 		*lock = RESPONSE_ERROR_1;
 		return 0
 	}
@@ -87,7 +87,7 @@ pub extern "C" fn vc_gencmd_send(
 	let command = match unsafe { CStr::from_ptr(arg1) }.to_str() {
 		Ok(command) => command,
 		Err(err) => {
-			log::debug!("Unsupported command bytes for mock ffi: {}", err);
+			log::warn!("Unsupported command bytes for mock ffi: {}", err);
 			*lock = RESPONSE_ERROR_1;
 			return 0
 		}
