@@ -45,3 +45,25 @@ OPTIONS:
 ARGS:
     <command>...
 ```
+
+## Building
+
+Real bindings link to the broadcom VideoCore libraries `vchiq_arm`, `vcos` and `bcm_host` usually found in `/opt/vc/lib` (this is configured in build.rs).
+
+### Musl
+
+To build this crate with real bindings on musl dynamic linking has to be enabled for that target. A good way to do this for a native target is to update cargo config (either globally or in `.cargo/config`) with:
+
+```toml
+[build]
+rustflags = ["-C", "target-feature=-crt-static"]
+```
+
+For a cross compiled target use `[target.target-triple-here]` instead of `[build]`:
+
+```toml
+[target.aarch64-unknown-linux-musl] # or any other target
+rustflags = ["-C", "target-feature=-crt-static"]
+```
+
+This is only needed with real dynamic bindings. It might be possible to build the vc libraries from source as static libraries instead.
