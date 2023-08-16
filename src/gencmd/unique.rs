@@ -3,12 +3,12 @@ use std::borrow::BorrowMut;
 use crate::{
 	error::{GencmdCmdError, GencmdInitError},
 	gencmd::{Command, Gencmd},
-	global::GlobalInstance
+	global::GlobalInstance,
 };
 
 pub struct GencmdUnique<
 	G: BorrowMut<Gencmd> = Gencmd,
-	I: BorrowMut<GlobalInstance> = GlobalInstance
+	I: BorrowMut<GlobalInstance> = GlobalInstance,
 >(pub G, pub I);
 impl GencmdUnique {
 	pub fn new() -> Result<Self, GencmdInitError> {

@@ -1,18 +1,18 @@
 use std::{
 	borrow::BorrowMut,
 	ops::DerefMut,
-	sync::{Arc, Mutex}
+	sync::{Arc, Mutex},
 };
 
 use crate::{
 	error::{GencmdCmdError, GencmdInitError},
 	gencmd::{Command, Gencmd},
-	global::GlobalInstance
+	global::GlobalInstance,
 };
 
 pub struct GencmdGlobal<
 	G: BorrowMut<Gencmd> = Gencmd,
-	I: BorrowMut<GlobalInstance> = GlobalInstance
+	I: BorrowMut<GlobalInstance> = GlobalInstance,
 >(pub G, pub Arc<Mutex<I>>);
 impl GencmdGlobal {
 	pub fn new() -> Result<Self, GencmdInitError> {
@@ -46,10 +46,7 @@ mod test {
 	use crate::gencmd::global::GencmdGlobal;
 
 	use crate::gencmd::commands::{
-		CmdCommands,
-		CmdGetThrottled,
-		CmdMeasureClockArm,
-		CmdMeasureTemp
+		CmdCommands, CmdGetThrottled, CmdMeasureClockArm, CmdMeasureTemp,
 	};
 
 	#[test]
@@ -101,7 +98,7 @@ mod test {
 	fn test_cmds_threads_racing() {
 		crate::test::setup_global();
 
-		let threads: Vec<_> = (0 .. 30)
+		let threads: Vec<_> = (0..30)
 			.map(|i| match i % 3 {
 				0 => std::thread::spawn(|| {
 					let mut gencmd = GencmdGlobal::new().unwrap();
@@ -118,7 +115,7 @@ mod test {
 
 					gencmd.send_cmd::<CmdMeasureTemp>().unwrap();
 				}),
-				_ => unreachable!()
+				_ => unreachable!(),
 			})
 			.collect();
 

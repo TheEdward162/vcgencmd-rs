@@ -5,6 +5,7 @@ fn main() {
 		println!("cargo:rustc-link-lib=vcos");
 		println!("cargo:rustc-link-lib=bcm_host");
 		println!("cargo:rustc-link-search=/opt/vc/lib");
+		println!("cargo:rustc-link-arg=-Wl,-rpath=/opt/vc/lib");
 	}
 
 	#[cfg(feature = "run_bindgen")]
@@ -17,7 +18,7 @@ fn run_bindgen() {
 
 	const INCLUDE_HEADERS: &'static [&'static str] = &[
 		"raspberrypi-userland/interface/vmcs_host/vc_vchi_gencmd.h",
-		"raspberrypi-userland/interface/vmcs_host/vc_gencmd_defs.h"
+		"raspberrypi-userland/interface/vmcs_host/vc_gencmd_defs.h",
 	];
 
 	// an absolute hack of including c files as headers
@@ -67,7 +68,8 @@ fn run_bindgen() {
 		.allowlist_var("GENCMDSERVICE_MSGFIFO_SIZE")
 		.allowlist_var("GENCMD_MAX_LENGTH")
 		// and generate
-		.generate().expect("Could not generate bindings");
+		.generate()
+		.expect("Could not generate bindings");
 
 	let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
 	bindings

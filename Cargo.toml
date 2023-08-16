@@ -1,13 +1,13 @@
 [package]
 name = "videocore-gencmd"
 version = "0.1.0"
-edition = "2018"
+edition = "2021"
 authors = ["TheEdward162 <TheEdward162@gmail.com>"]
 license = "MIT/Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/TheEdward162/vcgencmd-rs"
-keywords = ["raspberrypi", "raspberry", "videocore", "bindings", "vcgencmd"]
-description = "Actual FFI bindings to Videocore gencmd funcionality"
+keywords = ["bindings", "raspberry", "raspberrypi", "vcgencmd", "videocore"]
+description = "FFI bindings to Videocore gencmd functionality"
 exclude = ["raspberrypi-userland/*"]
 
 [[bin]]
@@ -18,25 +18,24 @@ required-features = ["cli_app"]
 default = []
 
 run_bindgen = ["bindgen"]
-mock_vc_ffi = ["once_cell"]
-cli_app = ["clap", "anyhow", "edwardium_logger"]
-global_singleton = ["once_cell"]
+mock_vc_ffi = []
+cli_app = ["anyhow", "clap", "edwardium_logger"]
+global_singleton = []
 
 serde_models = ["serde"]
 
 [dependencies]
-once_cell = { version = "1.8", optional = true }
 thiserror = "1"
 log = "0.4"
 
-clap = { version = "2", optional = true }
+clap = { version = "4", optional = true, features = ["derive"] }
 anyhow = { version = "1", optional = true }
-edwardium_logger = { version = "1.2.0", default-features = false, features = ["colored_stderr_output"], optional = true }
+edwardium_logger = { version = "1.2", default-features = false, features = ["colored_stderr_output"], optional = true }
 
 serde = { version = "1", optional = true, features = ["derive"] }
 
 [dev-dependencies]
-edwardium_logger = { version = "1.2.0", default-features = false, features = ["colored_stderr_output"] }
+edwardium_logger = { version = "1.2", default-features = false, features = ["colored_stderr_output"] }
 
 [build-dependencies]
-bindgen = { version = "0.58", optional = true }
+bindgen = { version = "0.66", optional = true }

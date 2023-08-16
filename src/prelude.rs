@@ -1,7 +1,7 @@
 pub use crate::{
 	error::*,
 	gencmd::{commands::*, unique::GencmdUnique, Gencmd},
-	global::GlobalInstance
+	global::GlobalInstance,
 };
 
 #[cfg(feature = "global_singleton")]

@@ -1,6 +1,6 @@
 use std::{
 	ffi::CStr,
-	sync::atomic::{AtomicBool, Ordering as AtomicOrdering}
+	sync::atomic::{AtomicBool, Ordering as AtomicOrdering},
 };
 
 use crate::{error::*, ffi};
@@ -13,7 +13,7 @@ static ONE_INSTANCE: AtomicBool = AtomicBool::new(false);
 pub struct GlobalInstance {
 	instance: ffi::VCHI_INSTANCE_T,
 	#[allow(dead_code)] // :shrug:
-	connection: *mut ffi::VCHI_CONNECTION_T
+	connection: *mut ffi::VCHI_CONNECTION_T,
 }
 impl GlobalInstance {
 	/// Initializes a new instance of videocore connection.
@@ -26,7 +26,7 @@ impl GlobalInstance {
 	/// provided in `singleton` module.
 	pub fn new() -> Result<Self, GencmdInitError> {
 		if ONE_INSTANCE.swap(true, AtomicOrdering::Acquire) {
-			return Err(GencmdInitError::AlreadyInitialized)
+			return Err(GencmdInitError::AlreadyInitialized);
 		}
 
 		log::info!("Initializing videocore gencmd instance");
@@ -40,12 +40,12 @@ impl GlobalInstance {
 		let mut instance: ffi::VCHI_INSTANCE_T = std::ptr::null_mut();
 		let result = unsafe { ffi::vchi_initialise(&mut instance) };
 		if result != 0 || instance == std::ptr::null_mut() {
-			return Err(GencmdInitError::VchiInit)
+			return Err(GencmdInitError::VchiInit);
 		}
 
 		let result = unsafe { ffi::vchi_connect(std::ptr::null_mut(), 0, instance) };
 		if result != 0 {
-			return Err(GencmdInitError::VchiConnect)
+			return Err(GencmdInitError::VchiConnect);
 		}
 
 		let mut connection: *mut ffi::VCHI_CONNECTION_T = std::ptr::null_mut();
@@ -56,7 +56,7 @@ impl GlobalInstance {
 
 		Ok(GlobalInstance {
 			instance,
-			connection
+			connection,
 		})
 	}
 
@@ -68,7 +68,6 @@ impl GlobalInstance {
 	/// ### Safety
 	/// Looks like the response must be picked up before another thread issues a send, otherwise
 	/// the entire _system_ gets broken and all communication with vc gencmd starts going haywire.
-	#[allow(unused_unsafe)]
 	pub unsafe fn send_command(&mut self, command: &CStr) -> Result<(), GencmdCmdError> {
 		const FORMAT: &'static [u8] = b"%s\0";
 
@@ -77,7 +76,7 @@ impl GlobalInstance {
 		}
 
 		if command.to_bytes().len() + 1 > ffi::GENCMD_MAX_LENGTH as usize {
-			return Err(GencmdCmdError::CommandTooLong)
+			return Err(GencmdCmdError::CommandTooLong);
 		}
 
 		// SAFETY: Things are initialized, the strings are null terminated,
@@ -87,11 +86,11 @@ impl GlobalInstance {
 		let result = unsafe {
 			ffi::vc_gencmd_send(
 				FORMAT.as_ptr() as *const std::os::raw::c_char,
-				command.as_ptr()
+				command.as_ptr(),
 			)
 		};
 		if result != 0 {
-			return Err(GencmdCmdError::Send)
+			return Err(GencmdCmdError::Send);
 		}
 
 		Ok(())
@@ -113,11 +112,11 @@ impl GlobalInstance {
 		let result = unsafe {
 			ffi::vc_gencmd_read_response(
 				buffer.as_mut_ptr() as *mut std::os::raw::c_char,
-				buffer.len() as std::os::raw::c_int
+				buffer.len() as std::os::raw::c_int,
 			)
 		};
 		if result != 0 {
-			return Err(GencmdCmdError::Read)
+			return Err(GencmdCmdError::Read);
 		}
 
 		// strlen, but sane
@@ -125,7 +124,7 @@ impl GlobalInstance {
 
 		log::debug!(
 			"retrieved vc response: {:?}",
-			CStr::from_bytes_with_nul(&buffer[..= len]).unwrap()
+			CStr::from_bytes_with_nul(&buffer[..=len]).unwrap()
 		);
 
 		Ok(len)
@@ -151,7 +150,7 @@ impl GlobalInstance {
 	/// If `deinit_ref_mut` is not called it will be called in `drop` and will panic on error.
 	pub fn deinit_ref_mut(&mut self) -> Result<(), GencmdDeinitError> {
 		if self.is_deinitialized() {
-			return Ok(())
+			return Ok(());
 		}
 
 		log::info!("Deinitializing videocore gencmd instance");
@@ -160,7 +159,7 @@ impl GlobalInstance {
 
 		let result = unsafe { ffi::vchi_disconnect(self.instance) };
 		if result != 0 {
-			return Err(GencmdDeinitError::VchiDisconnect)
+			return Err(GencmdDeinitError::VchiDisconnect);
 		}
 
 		unsafe { ffi::vcos_deinit() };
@@ -198,7 +197,7 @@ mod test {
 
 		match GlobalInstance::new() {
 			Err(GencmdInitError::AlreadyInitialized) => (),
-			_ => panic!("global instance must be unique")
+			_ => panic!("global instance must be unique"),
 		}
 
 		instance.deinit().unwrap();

@@ -4,12 +4,11 @@
 
 use super::{
 	response::{self, IntRadix},
-	Command,
-	GencmdCmdError
+	Command, GencmdCmdError,
 };
 
 #[cfg(feature = "serde_models")]
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 pub struct CmdCommands;
 impl<'a> Command<'a> for CmdCommands {
@@ -59,7 +58,7 @@ pub struct ThrottleStatus {
 	pub under_voltage: bool,
 	pub frequency_capped: bool,
 	pub throttled: bool,
-	pub soft_temperature_limit: bool
+	pub soft_temperature_limit: bool,
 }
 #[rustfmt::skip] // stop reordering muh constants
 impl ThrottleStatus {
@@ -75,7 +74,7 @@ impl ThrottleStatus {
 			under_voltage: value & Self::BIT_UNDER_VOLTAGE != 0,
 			frequency_capped: value & Self::BIT_FREQUENCT_CAPPED != 0,
 			throttled: value & Self::BIT_THROTTLED != 0,
-			soft_temperature_limit: value & Self::BIT_SOFT_TEMPERATURE_LIMIT != 0
+			soft_temperature_limit: value & Self::BIT_SOFT_TEMPERATURE_LIMIT != 0,
 		}
 	}
 
@@ -99,13 +98,13 @@ impl ThrottleStatus {
 #[cfg_attr(feature = "serde_models", derive(Serialize, Deserialize))]
 pub struct CpuThrottled {
 	pub current: ThrottleStatus,
-	pub occured: ThrottleStatus
+	pub occured: ThrottleStatus,
 }
 impl From<u32> for CpuThrottled {
 	fn from(value: u32) -> Self {
 		CpuThrottled {
 			current: ThrottleStatus::from_current(value),
-			occured: ThrottleStatus::from_occured(value)
+			occured: ThrottleStatus::from_occured(value),
 		}
 	}
 }

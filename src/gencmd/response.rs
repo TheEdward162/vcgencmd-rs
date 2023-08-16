@@ -14,7 +14,7 @@ pub enum ParseFieldError<E: std::error::Error + 'static> {
 	#[error("Invalid format")]
 	InvalidFormatError,
 	#[error("Invalid value format: {0}")]
-	ConversionError(#[from] E)
+	ConversionError(#[from] E),
 }
 
 pub trait ParseFieldType<'a>: Sized {
@@ -35,10 +35,10 @@ impl<'a, I: IntFromStrRadix, const RADIX: u32> ParseFieldType<'a> for IntRadix<I
 			.find(|ch: char| !(ch == '-' || ch == '+' || ch.is_digit(RADIX)))
 			.unwrap_or(source.len());
 
-		let value_str = &source[.. end];
+		let value_str = &source[..end];
 		let value = I::from_str_radix(value_str, RADIX)?;
 
-		Ok((&source[end ..], IntRadix(value)))
+		Ok((&source[end..], IntRadix(value)))
 	}
 }
 macro_rules! impl_from_str_radix {
@@ -74,10 +74,10 @@ impl<'a> ParseFieldType<'a> for f32 {
 			.find(|ch: char| !(ch == '-' || ch == '+' || ch == '.' || ch.is_digit(10)))
 			.unwrap_or(source.len());
 
-		let value_str = &source[.. end];
+		let value_str = &source[..end];
 		let value = value_str.parse::<Self>()?;
 
-		Ok((&source[end ..], value))
+		Ok((&source[end..], value))
 	}
 }
 
@@ -89,14 +89,14 @@ impl<'a> ParseFieldType<'a> for &'a str {
 
 	fn parse(mut source: &'a str) -> Result<(&'a str, Self), Self::Error> {
 		if !source.starts_with('"') {
-			return Err(ParseStrError)
+			return Err(ParseStrError);
 		}
-		source = &source[1 ..];
+		source = &source[1..];
 
 		let end = source.find('"').ok_or(ParseStrError)?;
 
-		let value = &source[.. end];
-		source = &source[end + 1 ..];
+		let value = &source[..end];
+		source = &source[end + 1..];
 
 		Ok((source, value))
 	}
@@ -104,7 +104,7 @@ impl<'a> ParseFieldType<'a> for &'a str {
 
 pub fn parse_field_simple<'a, T: ParseFieldType<'a>>(
 	source: &'a str,
-	key: &str
+	key: &str,
 ) -> Result<(&'a str, T), ParseFieldError<T::Error>> {
 	parse_field(source, key, None, None)
 }
@@ -113,7 +113,7 @@ pub fn parse_field<'a, T: ParseFieldType<'a>>(
 	mut source: &'a str,
 	key: &str,
 	value_prefix: Option<&str>,
-	value_suffix: Option<&str>
+	value_suffix: Option<&str>,
 ) -> Result<(&'a str, T), ParseFieldError<T::Error>> {
 	log::trace!(
 		"Parsing field: source: {}, key: {}, prefix: {:?}, postfix: {:?}",
@@ -128,22 +128,22 @@ pub fn parse_field<'a, T: ParseFieldType<'a>>(
 
 	// check key
 	if !source.starts_with(key) {
-		return Err(ParseFieldError::InvalidFormatError)
+		return Err(ParseFieldError::InvalidFormatError);
 	}
-	source = &source[key.len() ..];
+	source = &source[key.len()..];
 
 	// check equals sign
 	if !source.starts_with('=') {
-		return Err(ParseFieldError::InvalidFormatError)
+		return Err(ParseFieldError::InvalidFormatError);
 	}
-	source = &source[1 ..];
+	source = &source[1..];
 
 	// prefix
 	if let Some(prefix) = value_prefix {
 		if !source.starts_with(prefix) {
-			return Err(ParseFieldError::InvalidFormatError)
+			return Err(ParseFieldError::InvalidFormatError);
 		}
-		source = &source[prefix.len() ..];
+		source = &source[prefix.len()..];
 	}
 
 	// value
@@ -153,9 +153,9 @@ pub fn parse_field<'a, T: ParseFieldType<'a>>(
 	// suffix
 	if let Some(suffix) = value_suffix {
 		if !source.starts_with(suffix) {
-			return Err(ParseFieldError::InvalidFormatError)
+			return Err(ParseFieldError::InvalidFormatError);
 		}
-		source = &source[suffix.len() ..];
+		source = &source[suffix.len()..];
 	}
 
 	Ok((source, value))

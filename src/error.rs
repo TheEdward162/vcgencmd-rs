@@ -24,7 +24,7 @@ pub enum VcosError {
 	#[error("No such device or address")]
 	NxIo = ffi::VCOS_STATUS_T::VCOS_ENXIO.0 as u8,
 	#[error("Interrupted system call")]
-	Interrupt = ffi::VCOS_STATUS_T::VCOS_EINTR.0 as u8
+	Interrupt = ffi::VCOS_STATUS_T::VCOS_EINTR.0 as u8,
 }
 
 impl ffi::VCOS_STATUS_T {
@@ -41,7 +41,7 @@ impl ffi::VCOS_STATUS_T {
 			ffi::VCOS_STATUS_T::VCOS_EEXIST => VcosError::Exist,
 			ffi::VCOS_STATUS_T::VCOS_ENXIO => VcosError::NxIo,
 			ffi::VCOS_STATUS_T::VCOS_EINTR => VcosError::Interrupt,
-			_ => unreachable!()
+			_ => unreachable!(),
 		};
 
 		Err(error)
@@ -57,13 +57,13 @@ pub enum GencmdInitError {
 	#[error("Failed to create vchi connection")]
 	VchiConnect,
 	#[error("Another instance is already initialized")]
-	AlreadyInitialized
+	AlreadyInitialized,
 }
 
 #[derive(Error, Debug)]
 pub enum GencmdDeinitError {
 	#[error("Failed to destroy vchi connection")]
-	VchiDisconnect
+	VchiDisconnect,
 }
 
 #[derive(Error, Debug)]
@@ -82,7 +82,7 @@ pub enum GencmdCmdError {
 	#[error(transparent)]
 	ErrorResponse(#[from] GencmdErrorResponse),
 	#[error("Response has invalid format: {0}")]
-	InvalidResponseFormat(Box<dyn std::error::Error + Send + Sync>)
+	InvalidResponseFormat(Box<dyn std::error::Error + Send + Sync>),
 }
 impl GencmdCmdError {
 	pub fn from_invalid_format(error: impl std::error::Error + Send + Sync + 'static) -> Self {
@@ -95,13 +95,13 @@ pub enum GencmdErrorResponse {
 	#[error("Command not registered")]
 	CommandNotRegistered,
 	#[error("Invalid arguments")]
-	InvalidArguments
+	InvalidArguments,
 }
 impl GencmdErrorResponse {
 	pub const fn code(&self) -> i32 {
 		match self {
 			GencmdErrorResponse::CommandNotRegistered => 1,
-			GencmdErrorResponse::InvalidArguments => 2
+			GencmdErrorResponse::InvalidArguments => 2,
 		}
 	}
 }

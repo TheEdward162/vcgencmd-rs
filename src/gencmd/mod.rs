@@ -23,12 +23,12 @@ pub trait Command<'a> {
 /// This holds an internal buffer for communication and an Arc to the instance.
 #[derive(Clone)]
 pub struct Gencmd {
-	buffer: [u8; ffi::GENCMDSERVICE_MSGFIFO_SIZE as usize]
+	buffer: [u8; ffi::GENCMDSERVICE_MSGFIFO_SIZE as usize],
 }
 impl Gencmd {
 	pub fn new() -> Self {
 		Gencmd {
-			buffer: [0u8; ffi::GENCMDSERVICE_MSGFIFO_SIZE as usize]
+			buffer: [0u8; ffi::GENCMDSERVICE_MSGFIFO_SIZE as usize],
 		}
 	}
 
@@ -38,32 +38,31 @@ impl Gencmd {
 	pub fn send_cmd_raw(
 		&mut self,
 		instance: &mut GlobalInstance,
-		command: &str
+		command: &str,
 	) -> Result<&str, GencmdCmdError> {
 		if command.len() >= ffi::GENCMD_MAX_LENGTH as usize {
-			return Err(GencmdCmdError::CommandTooLong)
+			return Err(GencmdCmdError::CommandTooLong);
 		}
 		// this is true now but one never knows with C APIs
 		debug_assert!(ffi::GENCMD_MAX_LENGTH <= ffi::GENCMDSERVICE_MSGFIFO_SIZE);
 
 		// use buffer to get that null-terminated goodness of a C string
-		self.buffer[.. command.len()].copy_from_slice(command.as_bytes());
+		self.buffer[..command.len()].copy_from_slice(command.as_bytes());
 		self.buffer[command.len()] = 0;
 
 		// SAFETY: We call the retrieve right under and have unique access
 		unsafe {
-			instance.send_command(
-				CStr::from_bytes_with_nul(&self.buffer[..= command.len()]).unwrap()
-			)?;
+			instance
+				.send_command(CStr::from_bytes_with_nul(&self.buffer[..=command.len()]).unwrap())?;
 		}
 
 		let len = instance.retrieve_response(&mut self.buffer)?;
 
-		let response = std::str::from_utf8(&self.buffer[.. len])?;
+		let response = std::str::from_utf8(&self.buffer[..len])?;
 
 		if response.starts_with("error=") {
 			let error = Self::parse_error(response)?;
-			return Err(error.into())
+			return Err(error.into());
 		}
 
 		Ok(response)
@@ -71,7 +70,7 @@ impl Gencmd {
 
 	pub fn send_cmd<'a, C: Command<'a>>(
 		&'a mut self,
-		instance: &mut GlobalInstance
+		instance: &mut GlobalInstance,
 	) -> Result<C::Response, GencmdCmdError> {
 		let response = self.send_cmd_raw(instance, C::COMMAND_STR)?;
 
@@ -91,7 +90,7 @@ impl Gencmd {
 			2 => GencmdErrorResponse::InvalidArguments,
 			_ => {
 				return Err(GencmdCmdError::InvalidResponseFormat(
-					"Invalid code".to_string().into()
+					"Invalid code".to_string().into(),
 				))
 			}
 		};

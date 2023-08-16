@@ -1,12 +1,10 @@
 use std::sync::{Arc, Mutex, Weak};
 
-use once_cell::sync::Lazy;
-
 use super::GlobalInstance;
 use crate::error::GencmdInitError;
 
-type StaticGlobalInstance = Mutex<Weak<Mutex<GlobalInstance>>>;
-static GLOBAL_INSTANCE: Lazy<StaticGlobalInstance> = Lazy::new(|| Mutex::new(Weak::new()));
+type Instance = Weak<Mutex<GlobalInstance>>;
+static GLOBAL_INSTANCE: Mutex<Option<Instance>> = Mutex::new(None);
 
 impl GlobalInstance {
 	/// Returns a singleton instance.
@@ -40,8 +38,8 @@ impl GlobalInstance {
 	pub fn instance<const SPIN_RETRY_LIMIT: usize>() -> Result<Arc<Mutex<Self>>, GencmdInitError> {
 		let mut lock = GLOBAL_INSTANCE.lock().expect("mutex poisoned");
 
-		if let Some(instance) = lock.upgrade() {
-			return Ok(instance)
+		if let Some(instance) = lock.as_ref().and_then(|w| w.upgrade()) {
+			return Ok(instance);
 		}
 
 		let instance = {
@@ -52,11 +50,11 @@ impl GlobalInstance {
 						std::thread::yield_now();
 					}
 					Err(err) => return Err(err),
-					Ok(instance) => break instance
+					Ok(instance) => break instance,
 				}
 
 				if limit == 0 {
-					return Err(GencmdInitError::AlreadyInitialized)
+					return Err(GencmdInitError::AlreadyInitialized);
 				}
 				limit -= 1;
 			};
@@ -71,7 +69,7 @@ impl GlobalInstance {
 		};
 
 		let instance = Arc::new(Mutex::new(instance));
-		*lock = Arc::downgrade(&instance);
+		*lock = Some(Arc::downgrade(&instance));
 
 		Ok(instance)
 	}

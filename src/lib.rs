@@ -109,7 +109,6 @@ pub mod global;
 
 pub mod prelude;
 
-
 #[cfg(test)]
 mod test {
 	use std::sync::Once;

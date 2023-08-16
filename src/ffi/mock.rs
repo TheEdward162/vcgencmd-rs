@@ -1,7 +1,5 @@
 use std::{ffi::CStr, sync::Mutex};
 
-use once_cell::sync::Lazy;
-
 use super::{VCHI_CONNECTION_T, VCHI_INSTANCE_T, VCOS_STATUS_T};
 
 #[no_mangle]
@@ -31,7 +29,7 @@ pub extern "C" fn vchi_initialise(instance_handle: *mut VCHI_INSTANCE_T) -> i32 
 pub extern "C" fn vchi_connect(
 	_connections: *mut *mut VCHI_CONNECTION_T,
 	_num_connections: u32,
-	_instance_handle: VCHI_INSTANCE_T
+	_instance_handle: VCHI_INSTANCE_T,
 ) -> i32 {
 	log::trace!("vchi_connect");
 
@@ -49,7 +47,7 @@ pub extern "C" fn vchi_disconnect(_instance_handle: VCHI_INSTANCE_T) -> i32 {
 pub extern "C" fn vc_vchi_gencmd_init(
 	_initialise_instance: VCHI_INSTANCE_T,
 	_connections: *mut *mut VCHI_CONNECTION_T,
-	_num_connections: u32
+	_num_connections: u32,
 ) {
 	log::trace!("vc_vchi_gencmd_init");
 }
@@ -65,23 +63,25 @@ const RESPONSE_COMMANDS: &'static [u8] = b"commands=\"vcos, ap_output_control, a
 const RESPONSE_GET_THROTTLED: &'static [u8] = b"throttled=0x0\0";
 const RESPONSE_MEASURE_CLOCK_ARM: &'static [u8] = b"frequency(48)=6000000\0";
 const RESPONSE_MEASURE_TEMP: &'static [u8] = b"temp=45.6'C\0";
-static RESPONSE_LAST_SEND: Lazy<Mutex<&'static [u8]>> = Lazy::new(|| Mutex::new(RESPONSE_ERROR_1));
+static RESPONSE_LAST_SEND: Mutex<&'static [u8]> = Mutex::new(RESPONSE_ERROR_1);
 
 #[no_mangle]
 pub extern "C" fn vc_gencmd_send(
 	format: *const ::std::os::raw::c_char,
-	arg1: *const ::std::os::raw::c_char
+	// this is probably UB, but implementing variadic functions is unstable :(
+	arg1: *const ::std::os::raw::c_char,
 ) -> ::std::os::raw::c_int {
-	log::trace!("vc_gencmd_send");
+	log::trace!("vc_gencmd_send({:p}, {:p})", format, arg1);
 
 	let mut lock = RESPONSE_LAST_SEND.lock().expect("mutex poisoned");
 
 	let format = unsafe { CStr::from_ptr(format) };
+
 	// not going to reimplement printf
 	if format.to_bytes() != b"%s" {
 		log::warn!("Unsupported printf format for mock ffi");
 		*lock = RESPONSE_ERROR_1;
-		return 0
+		return 0;
 	}
 
 	let command = match unsafe { CStr::from_ptr(arg1) }.to_str() {
@@ -89,7 +89,7 @@ pub extern "C" fn vc_gencmd_send(
 		Err(err) => {
 			log::warn!("Unsupported command bytes for mock ffi: {}", err);
 			*lock = RESPONSE_ERROR_1;
-			return 0
+			return 0;
 		}
 	};
 
@@ -100,7 +100,7 @@ pub extern "C" fn vc_gencmd_send(
 		"measure_clock" => RESPONSE_ERROR_2,
 		"measure_clock arm" => RESPONSE_MEASURE_CLOCK_ARM,
 		"measure_temp" => RESPONSE_MEASURE_TEMP,
-		_ => RESPONSE_ERROR_1
+		_ => RESPONSE_ERROR_1,
 	};
 
 	0
@@ -109,7 +109,7 @@ pub extern "C" fn vc_gencmd_send(
 #[no_mangle]
 pub extern "C" fn vc_gencmd_read_response(
 	response: *mut ::std::os::raw::c_char,
-	maxlen: ::std::os::raw::c_int
+	maxlen: ::std::os::raw::c_int,
 ) -> ::std::os::raw::c_int {
 	log::trace!("vc_gencmd_read_response");
 
@@ -119,7 +119,7 @@ pub extern "C" fn vc_gencmd_read_response(
 		unsafe {
 			*response = 0;
 		}
-		return -1
+		return -1;
 	}
 
 	unsafe {
